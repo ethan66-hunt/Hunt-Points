@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#14261C" />
+  <title>Hunt Points</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icon.svg" />
+  <style>
+    :root {
+      --bg: #14261C;
+      --card: #1D3326;
+      --card2: #243C2E;
+      --ink: #F4EFE4;
+      --muted: #B7C4B4;
+      --gold: #C9A227;
+      --amber: #E0A45A;
+      --red: #D4674A;
+      --green: #7CB88A;
+      --line: #35543C;
+      --safe-top: env(safe-area-inset-top);
+      --safe-bot: env(safe-area-inset-bottom);
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: var(--bg); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif; }
+    body { padding-top: calc(12px + var(--safe-top)); padding-bottom: calc(84px + var(--safe-bot)); }
+    header { padding: 8px 20px 12px; }
+    h1 { font-size: 28px; margin: 0 0 4px; letter-spacing: -0.03em; }
+    .sub { color: var(--muted); font-size: 13px; }
+    .banner { margin: 0 16px 14px; padding: 12px 14px; border-radius: 14px; background: #3A2418; border: 1px solid #6A3E28; }
+    .banner strong { color: var(--amber); }
+    .banner a { color: var(--gold); }
+    .chips { display: flex; gap: 8px; overflow-x: auto; padding: 0 16px 12px; -webkit-overflow-scrolling: touch; }
+    .chip { flex: 0 0 auto; border: 1px solid var(--line); background: var(--card); color: var(--muted); border-radius: 999px; padding: 8px 12px; font-size: 13px; }
+    .chip.on { background: var(--gold); color: #14261C; border-color: var(--gold); font-weight: 600; }
+    .list { padding: 0 16px; display: flex; flex-direction: column; gap: 10px; }
+    .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 14px; }
+    .row { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
+    .state { font-weight: 700; font-size: 16px; }
+    .species { color: var(--muted); font-size: 13px; margin-top: 2px; }
+    .pts { font-size: 28px; font-weight: 700; color: var(--gold); line-height: 1; text-align: right; }
+    .pts span { display: block; font-size: 11px; color: var(--muted); font-weight: 500; }
+    .meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+    .tag { font-size: 11px; padding: 4px 8px; border-radius: 8px; background: var(--card2); color: var(--muted); }
+    .tag.hot { background: #4A261C; color: var(--red); }
+    .tag.warn { background: #3A3018; color: var(--amber); }
+    .tag.ok { background: #1E3A28; color: var(--green); }
+    .actions { display: flex; gap: 8px; margin-top: 12px; }
+    button, .btn { appearance: none; border: 0; border-radius: 12px; padding: 10px 12px; font-size: 14px; font-weight: 600; }
+    .plus, .minus { background: var(--card2); color: var(--ink); width: 42px; }
+    .link { background: transparent; color: var(--gold); padding: 10px 0; text-decoration: none; font-size: 13px; }
+    .done { background: #1E3A28; color: var(--green); flex: 1; }
+    .done.on { background: var(--green); color: #14261C; }
+    nav { position: fixed; left: 0; right: 0; bottom: 0; background: #101C16; border-top: 1px solid var(--line); display: flex; padding-bottom: var(--safe-bot); }
+    nav button { flex: 1; background: transparent; color: var(--muted); padding: 12px 0 10px; font-size: 11px; font-weight: 600; }
+    nav button.on { color: var(--gold); }
+    .hidden { display: none; }
+    .cal-item { display: grid; grid-template-columns: 72px 1fr; gap: 10px; align-items: start; }
+    .date { font-size: 12px; color: var(--gold); font-weight: 700; }
+    input, select { width: 100%; background: var(--card2); color: var(--ink); border: 1px solid var(--line); border-radius: 12px; padding: 12px; font-size: 16px; margin-top: 6px; }
+    label { font-size: 12px; color: var(--muted); }
+    .field { margin-bottom: 14px; }
+    .install { margin: 0 16px 16px; padding: 14px; border-radius: 16px; background: var(--card); border: 1px dashed var(--gold); font-size: 14px; line-height: 1.45; }
+    a { color: var(--gold); }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Hunt Points</h1>
+    <div class="sub" id="todayLine"></div>
+  </header>
+  <div id="urgent"></div>
+  <div id="view-home">
+    <div class="chips" id="filters"></div>
+    <div class="list" id="cards"></div>
+  </div>
+  <div id="view-cal" class="hidden list"></div>
+  <div id="view-settings" class="hidden" style="padding:0 16px">
+    <div class="install">
+      <strong>Add to iPhone Home Screen</strong><br />
+      Safari → Share → Add to Home Screen. It opens full-screen like an app. Data stays on this phone.
+    </div>
+    <div class="field"><label>Hunter name</label><input id="hunter" placeholder="Your name" /></div>
+    <div class="field"><label>Home state</label><input id="homeState" placeholder="Indiana" /></div>
+    <p class="sub">Notifications: iOS only allows web push after you add this to the Home Screen, and even then it is limited. Keep the Grok monthly reminder on, and enable the banner alerts below if your browser asks.</p>
+    <button class="done" id="notifyBtn" type="button">Enable deadline alerts</button>
+    <p class="sub" id="notifyStatus" style="margin-top:10px"></p>
+  </div>
+  <nav>
+    <button class="on" data-view="home">Points</button>
+    <button data-view="cal">Deadlines</button>
+    <button data-view="settings">Setup</button>
+  </nav>
+<script>
+const DEFAULTS = [
+  { id:"mt-pref", track:true, state:"Montana", species:"Elk/deer combo preference", system:"Preference max 3", points:0, pointDate:"2026-12-31", applyDate:"2027-04-01", cost:100, apply:true, done:false, url:"https://ols.fwp.mt.gov/" },
+  { id:"mt-bonus", track:true, state:"Montana", species:"Bonus points (permits)", system:"Squared bonus", points:0, pointDate:"2026-09-30", applyDate:"2027-04-01", cost:50, apply:true, done:false, url:"https://ols.fwp.mt.gov/" },
+  { id:"wy-elk", track:true, state:"Wyoming", species:"Elk", system:"Pref 75/25", points:0, pointDate:"2026-11-02", applyDate:"2027-02-02", cost:75, apply:true, done:false, url:"https://wgfapps.wyo.gov/elsapplication/ELSWelcome.aspx" },
+  { id:"wy-deer", track:true, state:"Wyoming", species:"Deer", system:"Pref 75/25", points:0, pointDate:"2026-11-02", applyDate:"2027-06-01", cost:75, apply:false, done:false, url:"https://wgfapps.wyo.gov/elsapplication/ELSWelcome.aspx" },
+  { id:"co-elk", track:true, state:"Colorado", species:"Elk", system:"Weighted pref", points:0, pointDate:"2027-04-07", applyDate:"2027-04-07", cost:100, apply:true, done:false, url:"https://cpw.state.co.us/buy-apply" },
+  { id:"az-elk", track:true, state:"Arizona", species:"Elk", system:"Bonus + loyalty", points:0, pointDate:"2027-02-03", applyDate:"2027-02-03", cost:20, apply:true, done:false, url:"https://draw.azgfd.com/" },
+  { id:"or-elk", track:false, state:"Oregon", species:"Elk", system:"Preference / Point Saver", points:0, pointDate:"2026-11-30", applyDate:"2027-05-15", cost:8, apply:false, done:false, url:"https://odfw.huntfishoregon.com/login" },
+  { id:"id-gen", track:true, state:"Idaho", species:"NR general elk/deer", system:"No points", points:0, pointDate:null, applyDate:"2026-12-15", cost:18, apply:true, done:false, url:"https://license.gooutdoorsidaho.com/Licensing/CustomerLookup.aspx" },
+  { id:"nm-elk", track:true, state:"New Mexico", species:"Elk/deer/antelope", system:"No points", points:0, pointDate:null, applyDate:"2027-03-18", cost:16, apply:true, done:false, url:"https://onlinesales.wildlife.state.nm.us/" },
+  { id:"wa-elk", track:true, state:"Washington", species:"Deer/elk special permits", system:"Weighted app points", points:0, pointDate:null, applyDate:"2027-05-20", cost:152, apply:true, done:false, url:"https://fishhunt.dfw.wa.gov/#/login" },
+  { id:"ak-draw", track:true, state:"Alaska", species:"All draw species", system:"No points", points:0, pointDate:null, applyDate:"2026-12-15", cost:5, apply:true, done:false, url:"https://www.adfg.alaska.gov/index.cfm?adfg=huntlicense.draw" },
+  { id:"ut-elk", track:false, state:"Utah", species:"Elk", system:"Bonus", points:0, pointDate:"2027-02-05", applyDate:"2027-02-05", cost:15, apply:false, done:false, url:"https://wildlife.utah.gov/hunting.html" },
+  { id:"nv-elk", track:false, state:"Nevada", species:"Elk", system:"Squared bonus", points:0, pointDate:"2027-05-12", applyDate:"2027-05-12", cost:25, apply:false, done:false, url:"https://nevada.licensing.kalkomey.com/" }
+];
+
+const store = {
+  load() {
+    try { return JSON.parse(localStorage.getItem("huntPoints") || "null"); } catch { return null; }
+  },
+  save(data) { localStorage.setItem("huntPoints", JSON.stringify(data)); }
+};
+
+let data = store.load() || { hunter:"", homeState:"Indiana", items: DEFAULTS, filter:"Due" };
+DEFAULTS.forEach(d => {
+  if (!data.items.find(i => i.id === d.id)) data.items.push(d);
+});
+
+function daysUntil(iso) {
+  if (!iso) return null;
+  const t = new Date(iso + "T23:59:59");
+  return Math.ceil((t - new Date()) / 86400000);
+}
+function nearestDays(item) {
+  const a = daysUntil(item.pointDate);
+  const b = daysUntil(item.applyDate);
+  const vals = [a,b].filter(v => v !== null);
+  if (!vals.length) return null;
+  const future = vals.filter(v => v >= 0);
+  return future.length ? Math.min(...future) : Math.max(...vals);
+}
+function status(item) {
+  if (item.done) return { label:"Done", cls:"ok" };
+  const d = nearestDays(item);
+  if (d === null) return { label:"On deck", cls:"" };
+  if (d < 0) return { label:"Window passed — verify next", cls:"" };
+  if (d <= 14) return { label:"Do this now · " + d + "d", cls:"hot" };
+  if (d <= 45) return { label:"Coming up · " + d + "d", cls:"warn" };
+  return { label:d + " days", cls:"" };
+}
+
+const views = {
+  home: document.getElementById("view-home"),
+  cal: document.getElementById("view-cal"),
+  settings: document.getElementById("view-settings")
+};
+
+function render() {
+  document.getElementById("todayLine").textContent =
+    new Date().toLocaleDateString(undefined, { weekday:"long", month:"short", day:"numeric" }) +
+    (data.hunter ? " · " + data.hunter : "");
+
+  const due = data.items.filter(i => i.track && !i.done && nearestDays(i) !== null && nearestDays(i) >= 0 && nearestDays(i) <= 14);
+  const urgent = document.getElementById("urgent");
+  if (due.length) {
+    urgent.innerHTML = `<div class="banner"><strong>Due now:</strong> ${due.map(i => i.state + " " + i.species).join(" · ")}. Confirm on the official site before paying.</div>`;
+  } else urgent.innerHTML = "";
+
+  const states = ["Due", "Tracked", "All", ...Array.from(new Set(data.items.map(i => i.state)))];
+  document.getElementById("filters").innerHTML = states.map(s =>
+    `<button class="chip ${data.filter===s?"on":""}" data-f="${s}">${s}</button>`
+  ).join("");
+
+  let items = data.items;
+  if (data.filter === "Due") items = items.filter(i => i.track && !i.done && nearestDays(i) !== null && nearestDays(i) <= 45 && nearestDays(i) >= -3);
+  else if (data.filter === "Tracked") items = items.filter(i => i.track);
+  else if (data.filter !== "All") items = items.filter(i => i.state === data.filter);
+
+  document.getElementById("cards").innerHTML = items.map(i => {
+    const st = status(i);
+    return `<article class="card">
+      <div class="row">
+        <div>
+          <div class="state">${i.state}</div>
+          <div class="species">${i.species}</div>
+        </div>
+        <div class="pts">${i.points}<span>points</span></div>
+      </div>
+      <div class="meta">
+        <span class="tag ${st.cls}">${st.label}</span>
+        <span class="tag">${i.system}</span>
+        ${i.pointDate ? `<span class="tag">Point ${i.pointDate}</span>` : ""}
+        ${i.applyDate ? `<span class="tag">Apply ${i.applyDate}</span>` : ""}
+      </div>
+      <div class="actions">
+        <button class="minus" data-act="dec" data-id="${i.id}">−</button>
+        <button class="plus" data-act="inc" data-id="${i.id}">+</button>
+        <button class="done ${i.done?"on":""}" data-act="done" data-id="${i.id}">${i.done?"Bought":"Mark bought"}</button>
+        <a class="link" href="${i.url}" target="_blank" rel="noopener">Open portal</a>
+      </div>
+    </article>`;
+  }).join("") || `<p class="sub">Nothing in this filter.</p>`;
+
+  const events = [];
+  data.items.forEach(i => {
+    if (i.pointDate) events.push({ date:i.pointDate, state:i.state, what:"Buy / point window", item:i });
+    if (i.applyDate) events.push({ date:i.applyDate, state:i.state, what:"Apply deadline", item:i });
+  });
+  events.sort((a,b) => a.date.localeCompare(b.date));
+  document.getElementById("view-cal").innerHTML = events.map(e => {
+    const d = daysUntil(e.date);
+    const cls = d <= 14 && d >= 0 ? "hot" : d <= 45 && d >= 0 ? "warn" : "";
+    return `<article class="card cal-item">
+      <div class="date">${e.date.slice(5)}<div class="species">${d < 0 ? "passed" : d + "d"}</div></div>
+      <div><div class="state">${e.state}</div><div class="species">${e.what} · ${e.item.species}</div>
+      <span class="tag ${cls}">${d <= 14 && d >= 0 ? "Do this now" : d < 0 ? "Verify next window" : "On calendar"}</span>
+      <div><a class="link" href="${e.item.url}" target="_blank">Portal</a></div></div>
+    </article>`;
+  }).join("");
+
+  document.getElementById("hunter").value = data.hunter;
+  document.getElementById("homeState").value = data.homeState;
+}
+
+document.getElementById("filters").addEventListener("click", e => {
+  const f = e.target.dataset.f;
+  if (!f) return;
+  data.filter = f;
+  store.save(data);
+  render();
+});
+
+document.getElementById("cards").addEventListener("click", e => {
+  const btn = e.target.closest("[data-act]");
+  if (!btn) return;
+  const item = data.items.find(i => i.id === btn.dataset.id);
+  if (!item) return;
+  if (btn.dataset.act === "inc") item.points += 1;
+  if (btn.dataset.act === "dec") item.points = Math.max(0, item.points - 1);
+  if (btn.dataset.act === "done") item.done = !item.done;
+  store.save(data);
+  render();
+});
+
+document.querySelector("nav").addEventListener("click", e => {
+  const btn = e.target.closest("[data-view]");
+  if (!btn) return;
+  document.querySelectorAll("nav button").forEach(b => b.classList.toggle("on", b === btn));
+  Object.entries(views).forEach(([k,el]) => el.classList.toggle("hidden", k !== btn.dataset.view));
+});
+
+["hunter","homeState"].forEach(id => {
+  document.getElementById(id).addEventListener("input", e => {
+    data[id] = e.target.value;
+    store.save(data);
+  });
+});
+
+document.getElementById("notifyBtn").addEventListener("click", async () => {
+  const statusEl = document.getElementById("notifyStatus");
+  if (!("Notification" in window)) {
+    statusEl.textContent = "This browser cannot show web notifications. Keep the Grok reminder.";
+    return;
+  }
+  const perm = await Notification.requestPermission();
+  statusEl.textContent = perm === "granted"
+    ? "Alerts allowed. This page will ping when you open it if something is due within 14 days."
+    : "Permission denied. Use Grok monthly reminders instead.";
+  if (perm === "granted") maybeNotify();
+});
+
+function maybeNotify() {
+  if (Notification.permission !== "granted") return;
+  const due = data.items.filter(i => i.track && !i.done && nearestDays(i) !== null && nearestDays(i) >= 0 && nearestDays(i) <= 14);
+  if (!due.length) return;
+  const key = "notified-" + new Date().toISOString().slice(0,10);
+  if (localStorage.getItem(key)) return;
+  new Notification("Hunt points due", { body: due.map(i => i.state + " " + i.species).join(", ") });
+  localStorage.setItem(key, "1");
+}
+
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("./sw.js").catch(() => {});
+}
+render();
+maybeNotify();
+</script>
+</body>
+</html>
